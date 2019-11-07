@@ -1,0 +1,67 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+    Slack /imacoco Command
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+    Function:
+        Timeout: 30
+        Environment:
+            Variables:
+                PYTHONPATH: /var/runtime:/var/task/site-packages
+
+Parameters:
+    SlackToken:
+        Type: String
+    VerificationToken:
+        Type: String
+    # KeyIdParameter:
+    #     Type: String
+    # KmsEncryptedToken:
+    #     Type: String
+
+Resources:
+
+    SlackMinviteFunction:
+        Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+        Properties:
+            CodeUri: cmd/
+            Handler: app.lambda_handler
+            Runtime: python3.7
+            FunctionName: slack-imacoco-slash-cmd
+            Policies:
+            # - Statement:
+            #     - Action: kms:Decrypt
+            #       Resource:
+            #           Fn::Sub:
+            #               - arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/${keyId}
+            #               - keyId:
+            #                   Ref: KeyIdParameter
+            #       Effect: Allow
+            - Statement:
+                - Action: lambda:InvokeFunction
+                  Resource: '*'
+                  Effect: Allow
+            Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
+                Variables:
+                    EXEC_LAMBDA_NAME: !Ref SlackExecCommandFunction
+                    VERIFICATION_TOKEN: !Ref VerificationToken
+                    # KMS_ENCRYPTED_TOKEN: !Ref KmsEncryptedToken
+            Events:
+                Imacoco:
+                    Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+                    Properties:
+                        Path: /imacoco
+                        Method: POST
+
+    SlackExecCommandFunction:
+        Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+        Properties:
+            CodeUri: cmd/
+            Handler: imacoco.lambda_handler
+            Runtime: python3.7
+            FunctionName: slack-imacoco-slash-cmd-exec
+            Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
+                Variables:
+                    SLACK_TOKEN: !Ref SlackToken
